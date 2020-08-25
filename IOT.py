@@ -7,6 +7,8 @@ from kivy.uix.image import Image
 from kivy.uix.slider import Slider
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.vkeyboard import VKeyboard
+from kivy.uix.textinput import TextInput
 
 from kivy.graphics.instructions import Canvas
 from kivy.graphics import Rectangle
@@ -20,6 +22,7 @@ from kivy.core.window import Window
 import datetime
 import webbrowser
 import copy
+from random import randint
 
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -170,7 +173,6 @@ class MainScreen(Screen):
 
         self.add_widget(maingrid)
 
-
     def time_update(self, tom):
         current_time = datetime.datetime.now()  
         self.time_widget.text = '[b][size=70]' + str(current_time.hour) + ':' + str(current_time.minute) + ':' + str(current_time.second) + '[/size][/b]\n[size=20]' + str(current_time.day) + ' ' + months[current_time.month] + ' - ' + str(current_time.year) + '[/size]'
@@ -198,8 +200,8 @@ class MainScreen(Screen):
             grid = GridLayout(cols=1)
             b_grid = GridLayout(rows=1, size_hint=(1, 0.2))
 
-            close = Button(text='Close me!')
-            set_timer = Button(text='Set Timer!')
+            close = Button(text='Close me!', font_size=50, bold=True)
+            set_timer = Button(text='Set Timer!', font_size=50, bold=True)
 
             minspicker = GridLayout(cols=1)
 
@@ -214,21 +216,21 @@ class MainScreen(Screen):
                     self.mins.text = self.mins.text + str(button.text)
 
             for i in range(7, 10):
-                temp = Button(text=str(i))
+                temp = Button(text=str(i), font_size=50, bold=True)
                 temp.bind(on_press= lambda i: numberpush(self, i))
                 self.numpad.add_widget(temp)
             for i in range(4, 7):
-                temp = Button(text=str(i))
+                temp = Button(text=str(i), font_size=50, bold=True)
                 temp.bind(on_press= lambda i: numberpush(self, i))
                 self.numpad.add_widget(temp)
             for i in range(1,4):
-                temp = Button(text=str(i))
+                temp = Button(text=str(i), font_size=50, bold=True)
                 temp.bind(on_press= lambda i: numberpush(self, i))
                 self.numpad.add_widget(temp)
 
             self.numpad.add_widget(Label())
 
-            temp = Button(text=str('0'))
+            temp = Button(text=str('0'), font_size=50, bold=True)
             temp.bind(on_press= lambda i: numberpush(self, i))
             self.numpad.add_widget(temp)
 
@@ -238,7 +240,7 @@ class MainScreen(Screen):
                 else:
                     self.mins.text = self.mins.text[:-1]
 
-            temp = Button(text='BackSpace')
+            temp = Button(text='BackSpace', font_size=50, bold=True)
             temp.bind(on_press= lambda i: numberremove(self))
             self.numpad.add_widget(temp)
 
@@ -329,10 +331,17 @@ class FoodChooser(Screen):
         # Buttons
         add_new = Tile(image_normal= 'plus_sign.png', background_color=(0,0,0,0))
         add_new.bind(on_press= self.addnew_callback)
+
+        random7 = Tile(image_normal='dice.png', background_color=(0,0,0,0))
+        random7.bind(on_press= self.randomiser)
+
+        back = Tile(image_normal='back.png', background_color=(0,0,0,0))
+        back.bind(on_press=self.back_callback)
         # ---
 
-        buttons_grid.add_widget(Button())
+        buttons_grid.add_widget(random7)
         buttons_grid.add_widget(add_new)
+        buttons_grid.add_widget(back)
 
         ui_grid.add_widget(main_grid)
         ui_grid.add_widget(buttons_grid)
@@ -349,16 +358,102 @@ class FoodChooser(Screen):
         lists = GridLayout(cols=1)
 
         for i in lines:
-            temp_b = Label(text= str(i))
+            temp_b = Label(text= str(i), font_size=30, bold=True)
             lists.add_widget(temp_b)
 
         self.txtviewer.add_widget(lists)
     def addnew_callback(self, *args):
-        temp = open('food_list.txt', 'a')
-        temp.write('\n' + input('>>')) # Create a popup
-        temp.close()
-        self.scoll_view_update_callback()
+        # Popup
+        gird = GridLayout(cols=1)
+
+        self.chars = Label(text='', size_hint=(1, 0.1), font_size=50, bold=True)
+        gird.add_widget(self.chars)
+
+        # Keyboard
+        def keyboardpress(button):
+            self.chars.text = self.chars.text + str(button.text)
+        def keyboardspace(*args):
+            self.chars.text = self.chars.text + ' '
+        def backspace(*args):
+            if len(self.chars.text) > 0:
+                self.chars.text= self.chars.text[:-1]
+
+        keyboard = GridLayout(rows=3, cols=10)
+
+        keys_in_order = ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','','z','x','c','v','b','n','m','','','']
+
+        for key in keys_in_order:
+            if key=='':
+                keyboard.add_widget(Label())
+            else:
+                temp = Button(text=key, font_size=50, bold=True)
+                temp.bind(on_press=lambda i: keyboardpress(i))
+                keyboard.add_widget(temp)
+
+        gird.add_widget(keyboard)
+        # ---
+
+        buttons = GridLayout(rows=1, size_hint=(1, 0.2))
+
+        temp = Button(text='Space', font_size=40, bold=True)
+        temp.bind(on_press=lambda i: keyboardspace(i))
+        buttons.add_widget(temp)
+
+        temp = Button(text='BackSpace', size_hint=(0.25, 1), font_size=40, bold=True)
+        temp.bind(on_press=lambda i: backspace(i))
+        buttons.add_widget(temp)
+
+        quiter = Button(text='Quit', size_hint=(0.25, 1), font_size=40, bold=True)
+        buttons.add_widget(quiter)
+
+        saver = Button(text='Save', size_hint=(0.1, 1), font_size=40, bold=True)
+        buttons.add_widget(saver)
+
+        gird.add_widget(buttons)
         
+
+        self.popup = Popup(title='New Food Item', content=gird, auto_dismiss=False)
+
+        self.popup.open()
+
+
+        def close_popup(*args):
+            self.popup.dismiss()
+
+        quiter.bind(on_press=close_popup)
+
+        def save_item(*args):
+            file = open('food_list.txt', 'a')
+            file.write('\n' + self.chars.text)
+            file.close()
+            self.scoll_view_update_callback()
+            self.popup.dismiss()
+
+        saver.bind(on_press=save_item)
+    def randomiser(self, *args):
+        file = open('food_list.txt', 'r')
+        lines = file.read().split('\n')
+
+        lister = GridLayout(cols=1)
+
+        for i in range(7):
+            slec = lines[randint(0, len(lines)-1)]
+            lister.add_widget(Label(text=slec, font_size=50, bold=True))
+
+        quiter = Button(text='Quit', font_size=50, bold=True)
+        lister.add_widget(quiter)
+
+        self.popup = Popup(title='7 Food Items', content=lister, auto_dismiss=False)
+
+        self.popup.open()
+
+        def close_popup(*args):
+            self.popup.dismiss()
+
+        quiter.bind(on_press=close_popup)    
+    def back_callback(self, *args):
+        self.screenmanager.switch_to(MainScreen(self.screenmanager))
+
 
 class Tile(Button):
 
