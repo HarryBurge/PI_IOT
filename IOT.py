@@ -23,6 +23,7 @@ import datetime
 import webbrowser
 import copy
 from random import randint
+from allrecipes import AllRecipes
 
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -107,6 +108,9 @@ class MainScreen(Screen):
         spotify = Tile(image_normal= 'Spotify_up.png', background_color=[0,0,0,0])
         spotify.bind(on_press= self.spotify_callback)
 
+        recipe = Tile(image_normal= 'recipe.png', background_color=[0,0,0,0])
+        recipe.bind(on_press= self.recipe_callback)
+
         volume = Slider(orientation='vertical', min=0, max=100, value=25, cursor_image='slider.png', cursor_height=40, cursor_width=100, background_width=100)
         #pip install pyalsaaudio then do import alsaaudio
         # m = alsaaudio.Mixer()
@@ -146,12 +150,11 @@ class MainScreen(Screen):
 
         leftsubgrid.add_widget(spotify)
         leftsubgrid.add_widget(youtube)
-        leftsubgrid.add_widget(Label())
-        leftsubgrid.add_widget(Label())
+        leftsubgrid.add_widget(recipe)
+        leftsubgrid.add_widget(foodchooser)
 
         # Middle Grid
-        middlegrid.add_widget(foodchooser)
-        for i in range(7):
+        for i in range(8):
             middlegrid.add_widget(Label())
 
         # Right Grid
@@ -193,6 +196,8 @@ class MainScreen(Screen):
         self.timerbutton.background_color = (0, 50, 0, 1)
     def foodchooser_callback(self, *args):
         self.screenmanager.switch_to(FoodChooser(self.screenmanager))
+    def recipe_callback(self, *args):
+        self.screenmanager.switch_to(RecipeFinder(self.screenmanager))
     def timer_callback(self, *args):
 
         if not self.timer_on:
@@ -451,6 +456,150 @@ class FoodChooser(Screen):
             self.popup.dismiss()
 
         quiter.bind(on_press=close_popup)    
+    def back_callback(self, *args):
+        self.screenmanager.switch_to(MainScreen(self.screenmanager))
+
+
+class RecipeFinder(Screen):
+    def __init__(self, screenmanager, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.screenmanager = screenmanager
+
+        ui_grid = GridLayout(rows=1)
+
+        main_grid = GridLayout(rows=2, cols=1)
+        buttons_grid = GridLayout(cols=1, size_hint=(0.2, 1))
+
+        # viewer
+        self.txtviewer = ScrollView()
+
+        def txtviewer_update_rect(self, *args):
+            self.rect.pos = self.pos
+            self.rect.size = [self.size[0] - 10, self.size[1] - 10]
+
+        with self.txtviewer.canvas.before:
+            Color(0.73828125, 0.48828125, 0.2890625, 0.5)
+            self.txtviewer.rect = Rectangle(size=[self.txtviewer.size[0] - 10, self.txtviewer.size[1] - 10], pos=self.txtviewer.pos)
+
+        self.txtviewer.bind(pos=txtviewer_update_rect, size=txtviewer_update_rect)
+        # ---
+
+        # listings in viewer
+        self.scoll_view_update_callback([])
+        # ---
+
+        main_grid.add_widget(self.txtviewer)
+
+        # Buttons
+        search = Tile(image_normal= 'search.png', background_color=(0,0,0,0))
+        search.bind(on_press= self.search_callback)
+
+        back = Tile(image_normal='back.png', background_color=(0,0,0,0))
+        back.bind(on_press=self.back_callback)
+        # ---
+
+        buttons_grid.add_widget(search)
+        buttons_grid.add_widget(back)
+
+        ui_grid.add_widget(main_grid)
+        ui_grid.add_widget(buttons_grid)
+
+        self.add_widget(ui_grid)
+
+    def scoll_view_update_callback(self, items, *args):
+        self.txtviewer.clear_widgets()
+
+        lists = GridLayout(cols=1)
+
+        def open_url(url):
+            webbrowser.open(url)
+
+        for i in items:
+            menu_item = GridLayout(cols=1)
+
+            temp_b = Button(text= str(i['name']), font_size=30, bold=True, background_color= [0,0,0,0])
+            temp_b.url = i['url']
+            temp_b.bind(on_press=lambda x: open_url(x.url))
+            menu_item.add_widget(temp_b)
+
+            temp_d = Button(text= str(i['description']), font_size=15, background_color= [0,0,0,0])
+            temp_d.url = i['url']
+            temp_d.bind(on_press=lambda x: open_url(x.url))
+            menu_item.add_widget(temp_d)
+
+            lists.add_widget(menu_item)
+
+        self.txtviewer.add_widget(lists)
+
+    def search_callback(self, *args):
+        # Popup
+        gird = GridLayout(cols=1)
+
+        self.chars = Label(text='', size_hint=(1, 0.1), font_size=50, bold=True)
+        gird.add_widget(self.chars)
+
+        # Keyboard
+        def keyboardpress(button):
+            self.chars.text = self.chars.text + str(button.text)
+        def keyboardspace(*args):
+            self.chars.text = self.chars.text + ' '
+        def backspace(*args):
+            if len(self.chars.text) > 0:
+                self.chars.text= self.chars.text[:-1]
+
+        keyboard = GridLayout(rows=3, cols=10)
+
+        keys_in_order = ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','','z','x','c','v','b','n','m','','','']
+
+        for key in keys_in_order:
+            if key=='':
+                keyboard.add_widget(Label())
+            else:
+                temp = Button(text=key, font_size=50, bold=True)
+                temp.bind(on_press=lambda i: keyboardpress(i))
+                keyboard.add_widget(temp)
+
+        gird.add_widget(keyboard)
+        # ---
+
+        buttons = GridLayout(rows=1, size_hint=(1, 0.2))
+
+        temp = Button(text='Space', font_size=40, bold=True)
+        temp.bind(on_press=lambda i: keyboardspace(i))
+        buttons.add_widget(temp)
+
+        temp = Button(text='BackSpace', size_hint=(0.25, 1), font_size=40, bold=True)
+        temp.bind(on_press=lambda i: backspace(i))
+        buttons.add_widget(temp)
+
+        quiter = Button(text='Quit', size_hint=(0.25, 1), font_size=40, bold=True)
+        buttons.add_widget(quiter)
+
+        search = Button(text='Search', size_hint=(0.1, 1), font_size=40, bold=True)
+        buttons.add_widget(search)
+
+        gird.add_widget(buttons)
+
+        self.popup = Popup(title='New Food Item', content=gird, auto_dismiss=False)
+
+        self.popup.open()
+
+        def close_popup(*args):
+            self.popup.dismiss()
+
+        quiter.bind(on_press=close_popup)
+
+        def search_item(*args):
+            query_options = {
+                "wt": self.chars.text,         # Query keywords
+                "sort": "p"                # Sorting options : 're' for relevance, 'ra' for rating, 'p' for popular (optional)
+            }
+            query_results = AllRecipes.search(query_options)
+            self.scoll_view_update_callback(query_results)
+            self.popup.dismiss()
+
+        search.bind(on_press=search_item)
+
     def back_callback(self, *args):
         self.screenmanager.switch_to(MainScreen(self.screenmanager))
 
