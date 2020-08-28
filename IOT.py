@@ -623,5 +623,5 @@ class Tile(Button):
 
 
 if __name__ == '__main__':
-    Window.maximize()
+    # Window.maximize()
     IOTApp().run()
